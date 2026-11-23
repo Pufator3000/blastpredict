@@ -35,6 +35,9 @@ public final class BlastPredictor {
     /** NOTIFY_LISTENERS (2) | REDRAW_ON_MAIN_THREAD (8): re-render immediately, but no neighbour updates. */
     private static final int SET_FLAGS = 2 | 8;
 
+    /** HYBRID mode: looking steeper than this (up or down) uses the mined face, otherwise the horizontal facing. */
+    private static final double HYBRID_PITCH_DEGREES = 45.0;
+
     private record Prediction(BlockState original, long deadlineMs) {}
 
     private static final Map<BlockPos, Prediction> PENDING = new HashMap<>();
@@ -61,19 +64,27 @@ public final class BlastPredictor {
         BlockState state = mc.world.getBlockState(pos);
         if (state.isAir() || state.hasBlockEntity()) return;
 
+        Direction face = null;
+        HitResult hit = mc.crosshairTarget;
+        if (hit instanceof BlockHitResult blockHit
+                && blockHit.getType() == HitResult.Type.BLOCK
+                && blockHit.getBlockPos().equals(pos)) {
+            face = blockHit.getSide();
+        }
+
+        // The formation extends INTO the block, i.e. opposite to the face that was hit.
+        Direction faceDepth = face != null ? face.getOpposite() : lookDirection(mc.player);
+
         Direction depth;
         if (BlastConfig.mode == BlastConfig.Mode.PLAYER) {
             depth = lookDirection(mc.player);
+        } else if (BlastConfig.mode == BlastConfig.Mode.HYBRID) {
+            // Steep look up/down -> follow the mined face; otherwise -> the way you are facing (N/S/E/W).
+            depth = Math.abs(mc.player.getPitch()) > HYBRID_PITCH_DEGREES
+                    ? faceDepth
+                    : horizontalDirection(mc.player);
         } else {
-            Direction face = null;
-            HitResult hit = mc.crosshairTarget;
-            if (hit instanceof BlockHitResult blockHit
-                    && blockHit.getType() == HitResult.Type.BLOCK
-                    && blockHit.getBlockPos().equals(pos)) {
-                face = blockHit.getSide();
-            }
-            // The formation extends INTO the block, i.e. opposite to the face that was hit.
-            depth = face != null ? face.getOpposite() : lookDirection(mc.player);
+            depth = faceDepth;
         }
 
         capturedPos = pos.toImmutable();
@@ -183,6 +194,15 @@ public final class BlastPredictor {
 
         if (ay >= ax && ay >= az) return y > 0 ? Direction.UP : Direction.DOWN;
         if (ax >= az) return x > 0 ? Direction.EAST : Direction.WEST;
+        return z > 0 ? Direction.SOUTH : Direction.NORTH;
+    }
+
+    /** Nearest of north/south/east/west to where the entity is facing (ignores pitch). */
+    static Direction horizontalDirection(Entity entity) {
+        double yaw = Math.toRadians(entity.getYaw());
+        double x = -Math.sin(yaw);
+        double z = Math.cos(yaw);
+        if (Math.abs(x) >= Math.abs(z)) return x > 0 ? Direction.EAST : Direction.WEST;
         return z > 0 ? Direction.SOUTH : Direction.NORTH;
     }
 

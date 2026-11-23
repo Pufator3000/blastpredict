@@ -10,11 +10,11 @@ import java.util.Properties;
 
 /** Tiny persisted settings (config/blastpredict.properties). Only touched from the client thread. */
 public final class BlastConfig {
-    public enum Mode { FIXED, PLAYER }
+    public enum Mode { FIXED, PLAYER, HYBRID }
 
     /** /bp on|off */
     public static boolean enabled = true;
-    /** /fo = FIXED, /po = PLAYER */
+    /** /fo = FIXED, /po = PLAYER, /ho = HYBRID */
     public static Mode mode = Mode.FIXED;
     /** /bp match : true = only predict blocks of the same type as the mined block */
     public static boolean matchSameBlock = true;

@@ -47,7 +47,7 @@ public final class BlastCommands {
                 }))
                 .then(literal("status").executes(ctx -> {
                     send(ctx.getSource(), "Prediction " + (BlastConfig.enabled ? "ON" : "OFF")
-                            + " | mode " + (BlastConfig.mode == BlastConfig.Mode.FIXED ? "FIXED (/fo)" : "PLAYER (/po)")
+                            + " | mode " + modeLabel(BlastConfig.mode)
                             + " | match same block: " + (BlastConfig.matchSameBlock ? "yes" : "no")
                             + " | pending: " + BlastPredictor.pendingCount(), Formatting.YELLOW);
                     return Command.SINGLE_SUCCESS;
@@ -58,19 +58,32 @@ public final class BlastCommands {
 
         // /po -> formation follows the direction the player is looking
         dispatcher.register(literal("po").executes(ctx -> setMode(ctx.getSource(), BlastConfig.Mode.PLAYER)));
+
+        // /ho -> pitch hybrid: facing direction normally, mined face when looking steeply up/down
+        dispatcher.register(literal("ho").executes(ctx -> setMode(ctx.getSource(), BlastConfig.Mode.HYBRID)));
     }
 
     private static int setMode(FabricClientCommandSource source, BlastConfig.Mode mode) {
         BlastConfig.mode = mode;
         BlastConfig.save();
-        String text = mode == BlastConfig.Mode.FIXED
-                ? "Fixed orientation: 3x3x2 follows the mined block's face"
-                : "Player orientation: 3x3x2 follows where you look";
+        String text = switch (mode) {
+            case FIXED -> "Fixed orientation: 3x3x2 follows the mined block's face";
+            case PLAYER -> "Player orientation: 3x3x2 follows where you look";
+            case HYBRID -> "Pitch hybrid: 3x3x2 follows your facing, or the mined face when you look steeply up/down";
+        };
         if (!BlastConfig.enabled) {
             text += " (prediction is OFF, use /bp)";
         }
         send(source, text, Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static String modeLabel(BlastConfig.Mode mode) {
+        return switch (mode) {
+            case FIXED -> "FIXED (/fo)";
+            case PLAYER -> "PLAYER (/po)";
+            case HYBRID -> "HYBRID (/ho)";
+        };
     }
 
     private static void send(FabricClientCommandSource source, String message, Formatting color) {
