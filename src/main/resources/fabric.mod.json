@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "blastpredict",
+  "version": "${version}",
+  "name": "Blast Predict",
+  "description": "Client-side visual prediction for a server-side 3x3x2 Blast mining mechanic. Toggle with /bp, orientation with /fo and /po.",
+  "authors": [],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.blastpredict.BlastPredictClient"
+    ]
+  },
+  "mixins": [
+    "blastpredict.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
